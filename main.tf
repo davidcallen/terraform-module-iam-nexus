@@ -1,6 +1,6 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # IAM Role for use by an EC2 instance of Nexus to give access to :
-#   1) EC2 instance create/start/stop/...
+#   1) Register DNS record to Route53 for our ec2 host
 #   2) Nexus get config files from S3
 #   3) Cloudwatch logging and metrics
 #   4) Check AutoScalingGroup for number of instances so can delay mounting EFS until no instances using it.
@@ -27,6 +27,35 @@ resource "aws_iam_role" "nexus" {
 }
 EOF
   tags                 = var.tags
+}
+
+# 1) Register DNS record to Route53 for our ec2 host
+resource "aws_iam_policy" "route53" {
+  name        = "${var.resource_name_prefix}-nexus-route53"
+  description = "RegisterDNSwithRoute53"
+  policy      = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Route53registerDNS",
+      "Action": [
+        "route53:ChangeResourceRecordSets",
+        "route53:GetHostedZone",
+        "route53:ListResourceRecordSets"
+      ],
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:route53:::hostedzone/${var.route53_private_zone_id}"
+      ]
+    }
+  ]
+}
+EOF
+}
+resource "aws_iam_role_policy_attachment" "route53" {
+  role       = aws_iam_role.nexus.name
+  policy_arn = aws_iam_policy.route53.arn
 }
 
 # 2) Nexus get config files from S3
@@ -138,6 +167,7 @@ resource "aws_iam_role_policy_attachment" "nexus-get-secrets" {
   role       = aws_iam_role.nexus.name
   policy_arn = aws_iam_policy.nexus-get-secrets.arn
 }
+
 
 resource "aws_iam_instance_profile" "nexus" {
   name = "nexus"
