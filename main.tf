@@ -153,8 +153,8 @@ resource "aws_iam_policy" "nexus-get-secrets" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "GetSecretsForNexus"
-        Effect    = "Allow"
+        Sid    = "GetSecretsForNexus"
+        Effect = "Allow"
         Action = [
           "secretsmanager:GetSecretValue"
         ]
